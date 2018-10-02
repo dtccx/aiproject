@@ -61,11 +61,15 @@ class BFSAgent(Agent):
     def getAction(self, state):
         # TODO: write BFS Algorithm instead of returning Directions.STOP
         q = cls.deque()
-        q.append((state, Directions.STOP))
+        # timeOfNextSteps
+        time = 0
+        q.append((state, Directions.STOP, time))
+        isBreak = False
         while q:
-            cur, action = q.pop()
+            cur, curAction, time = q.popleft()
+            # time += 1
             if (cur.isWin()):
-                return action
+                return curAction
             if (cur.isLose()):
                 continue
             legal = cur.getLegalPacmanActions()
@@ -76,14 +80,37 @@ class BFSAgent(Agent):
             # scored.add(scoredTemp)
             for state, action in successors:
                 if (state != None):
-                    q.append((state, action))
+                    if (state.isWin()):
+                        return curAction
+                    if (state.isLose()):
+                        continue
+                    q.append((state, action, time + 1))
+                else:
+                    isBreak = True
+                    break
+            if isBreak:
+                break
         # global scored
-        scored = [(admissibleHeuristic(state), action) for state, action in q]
-        if (scored == None):
+        # print(q)
+
+        #If not reaching a terminal state, return the action leading to the node with
+        #the min score and no children based on the heuristic function
+        scored = [(admissibleHeuristic(state), action, time) for state, action, time in q]
+        # print(scored,"/n")
+        if scored == []:
             return Directions.STOP
         bestScore = min(scored)[0]
-        bestActions = [pair[1] for pair in scored if pair[0] == bestScore]
-        return random.choice(bestActions)
+        for score, action, time in scored:
+            if score == bestScore:
+                bestAction = action
+                print(bestAction)
+                break
+        bestArray = min(scored[0], scored[2])
+        # bestArray = max(scored, key=lambda s: (s[0], -s[2]))
+        # bestAction = bestArray[1]
+        #print(bestArray)
+        #print(bestAction)
+        return bestAction
 
 class DFSAgent(Agent):
     # Initialization Function: Called one time when the game starts
