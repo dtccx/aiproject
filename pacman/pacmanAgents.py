@@ -60,57 +60,59 @@ class BFSAgent(Agent):
     # GetAction Function: Called with every frame
     def getAction(self, state):
         # TODO: write BFS Algorithm instead of returning Directions.STOP
+        # queue store (state, action) stores the next state after the exact one after current state action and the action
+        # (the action will stay same)
         q = cls.deque()
-        # timeOfNextSteps
-        time = 0
-        q.append((state, Directions.STOP, time))
+        for action in state.getLegalPacmanActions():
+            q.append((state.generatePacmanSuccessor(action), action))
         isBreak = False
         while q:
-            cur, curAction, time = q.popleft()
-            # time += 1
-            if (cur.isWin()):
-                return curAction
-            if (cur.isLose()):
+            curState, preAction = q.popleft()
+            if (curState.isWin()):
+                return preAction
+            if (curState.isLose()):
                 continue
-            legal = cur.getLegalPacmanActions()
-            # return action, state
-            successors = [(cur.generatePacmanSuccessor(action), action) for action in legal]
+            # curState.generatePacmanSuccessor(curAction) means the nextState
+            successors = [(curState.generatePacmanSuccessor(curAction), curAction) for curAction in curState.getLegalPacmanActions()]
             # global scored
             # scored = scored + [(admissibleHeuristic(state), action) for state, action in successors]
             # scored.add(scoredTemp)
-            for state, action in successors:
-                if (state != None):
-                    if (state.isWin()):
-                        return curAction
-                    if (state.isLose()):
-                        continue
-                    q.append((state, action, time + 1))
+            for nextState, curAction in successors:
+                if (nextState != None):
+                    # if (nextState.isWin()):
+                    #     return curAction
+                    # if (nextState.isLose()):
+                    #     continue
+                    q.append((nextState, preAction))
                 else:
                     isBreak = True
                     break
             if isBreak:
                 break
-        # global scored
-        # print(q)
 
-        #If not reaching a terminal state, return the action leading to the node with
-        #the min score and no children based on the heuristic function
-        scored = [(admissibleHeuristic(state), action, time) for state, action, time in q]
+        #If you did not reach a terminal state, return the action leading to the node with the minimum total cost.
+        scored = [(admissibleHeuristic(state), action) for state, action in q]
         # print(scored,"/n")
         if scored == []:
             return Directions.STOP
         bestScore = min(scored)[0]
-        for score, action, time in scored:
+        for score, action in scored:
             if score == bestScore:
                 bestAction = action
                 print(bestAction)
                 break
-        bestArray = min(scored[0], scored[2])
+        return bestAction
+        # bestArray = min(scored, key=lambda s: (s[0], s[2]))
         # bestArray = max(scored, key=lambda s: (s[0], -s[2]))
         # bestAction = bestArray[1]
         #print(bestArray)
-        #print(bestAction)
-        return bestAction
+
+        # bestScore = min(scored)[0]
+        # # get all actions that lead to the highest score
+        # bestActions = [pair[1] for pair in scored if pair[0] == bestScore]
+        # # return random action from the list of the best actions
+        # return random.choice(bestActions)
+
 
 class DFSAgent(Agent):
     # Initialization Function: Called one time when the game starts
