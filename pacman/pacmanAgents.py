@@ -55,7 +55,7 @@ class BFSAgent(Agent):
     def registerInitialState(self, state):
         global scored
         scored = []
-        return;
+        return
 
     # GetAction Function: Called with every frame
     def getAction(self, state):
@@ -74,7 +74,6 @@ class BFSAgent(Agent):
                 continue
             # curState.generatePacmanSuccessor(curAction) means the nextState
             successors = [(curState.generatePacmanSuccessor(curAction), curAction) for curAction in curState.getLegalPacmanActions()]
-            # global scored
             # scored = scored + [(admissibleHeuristic(state), action) for state, action in successors]
             # scored.add(scoredTemp)
             for nextState, curAction in successors:
@@ -97,7 +96,7 @@ class BFSAgent(Agent):
             return Directions.STOP
         bestScore = min(scored)[0]
         for score, action in scored:
-            if score == bestScore:
+            if (score == bestScore):
                 bestAction = action
                 print(bestAction)
                 break
@@ -117,12 +116,49 @@ class BFSAgent(Agent):
 class DFSAgent(Agent):
     # Initialization Function: Called one time when the game starts
     def registerInitialState(self, state):
-        return;
+
+        return
+
+    def dfs(self, state, action, list, tempList):
+        if (state == None):
+            if tempList:
+                tempList.pop()
+            list.extend(tempList)
+            return
+
+        legal = state.getLegalPacmanActions()
+        # get all the successor state for these actions
+        successors = [(state.generatePacmanSuccessor(action), action) for action in legal]
+        for nextState, curAction in successors:
+            # if (nextState != None):
+            # if (nextState == None):
+            #     return
+            tempList.append((nextState, action))
+            self.dfs(nextState, curAction, list, tempList)
+            if tempList:
+                tempList.pop()
+        return
 
     # GetAction Function: Called with every frame
     def getAction(self, state):
         # TODO: write DFS Algorithm instead of returning Directions.STOP
-        return Directions.STOP
+        list = []
+        # Legal action
+        for action in state.getLegalPacmanActions():
+            self.dfs(state.generatePacmanSuccessor(action), action, list, [])
+        #self.dfs(state, None, list)
+        # evaluate the successor states using scoreEvaluation heuristic
+        scored = [(admissibleHeuristic(state), action) for state, action in list]
+        if scored == []:
+            return Directions.STOP
+        bestScore = min(scored)[0]
+        for score, action in scored:
+            if (score == bestScore):
+                bestAction = action
+                print(bestAction)
+                break
+        return bestAction
+
 
 class AStarAgent(Agent):
     # Initialization Function: Called one time when the game starts
