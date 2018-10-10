@@ -198,4 +198,41 @@ class AStarAgent(Agent):
     # GetAction Function: Called with every frame
     def getAction(self, state):
         # TODO: write A* Algorithm instead of returning Directions.STOP
+        list = []
+        for action in state.getLegalPacmanActions():
+            list.append((state.generatePacmanSuccessor(action), action, 0))
+        isBreak = False
+        while list:
+            curState, preAction, depth = list.pop(-1)
+            if (curState.isWin()):
+                return preAction
+            if (curState.isLose()):
+                continue
+            # curState.generatePacmanSuccessor(curAction) means the nextState
+            successors = [(curState.generatePacmanSuccessor(curAction), curAction) for curAction in curState.getLegalPacmanActions()]
+            # scored = scored + [(admissibleHeuristic(state), action) for state, action in successors]
+            # scored.add(scoredTemp)
+            for nextState, curAction in successors:
+                if (nextState != None):
+                    list.append((nextState, preAction, depth + 1))
+                else:
+                    isBreak = True
+                    break
+            if isBreak:
+                break
+
+        scored = [(admissibleHeuristic(state) + depth, action) for state, action, depth in list]
+        if scored == []:
+            return Directions.STOP
+        bestScore = min(scored)[0]
+        for score, action in scored:
+            if (score == bestScore):
+                bestAction = action
+                print(bestAction)
+                break
+        return bestAction
+        bestActions = [pair[1] for pair in scored if pair[0] == bestScore]
+        # return random action from the list of the best actions
+        return random.choice(bestActions)
+
         return Directions.STOP
