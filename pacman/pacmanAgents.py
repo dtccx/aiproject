@@ -78,10 +78,6 @@ class BFSAgent(Agent):
             # scored.add(scoredTemp)
             for nextState, curAction in successors:
                 if (nextState != None):
-                    # if (nextState.isWin()):
-                    #     return curAction
-                    # if (nextState.isLose()):
-                    #     continue
                     q.append((nextState, preAction))
                 else:
                     isBreak = True
@@ -100,6 +96,9 @@ class BFSAgent(Agent):
                 bestAction = action
                 print(bestAction)
                 break
+        bestActions = [pair[1] for pair in scored if pair[0] == bestScore]
+        # return random action from the list of the best actions
+        #return random.choice(bestActions)
         return bestAction
         # bestArray = min(scored, key=lambda s: (s[0], s[2]))
         # bestArray = max(scored, key=lambda s: (s[0], -s[2]))
@@ -116,38 +115,65 @@ class BFSAgent(Agent):
 class DFSAgent(Agent):
     # Initialization Function: Called one time when the game starts
     def registerInitialState(self, state):
-
         return
 
-    def dfs(self, state, action, list, tempList):
-        if (state == None):
-            if tempList:
-                tempList.pop()
-            list.extend(tempList)
-            return
-
-        legal = state.getLegalPacmanActions()
-        # get all the successor state for these actions
-        successors = [(state.generatePacmanSuccessor(action), action) for action in legal]
-        for nextState, curAction in successors:
-            # if (nextState != None):
-            # if (nextState == None):
-            #     return
-            tempList.append((nextState, action))
-            self.dfs(nextState, curAction, list, tempList)
-            if tempList:
-                tempList.pop()
-        return
+    # def dfs(self, state, action, list):
+    #     if (state.isWin()):
+    #         return (action, True)
+    #     # get this states' all legal actions
+    #     legal = state.getLegalPacmanActions()
+    #     # get all the successor state for these actions
+    #     successors = [(state.generatePacmanSuccessor(action), action) for action in legal]
+    #     for nextState, curAction in successors:
+    #         # if (nextState != None):
+    #         if (nextState == None):
+    #             return (Directions.STOP, False)
+    #         # put all successful action and state into list
+    #         list.append((nextState, action))
+    #         self.dfs(nextState, curAction, list)
+    #         # if tempList:
+    #         #     tempList.pop()
+    #     return (Directions.STOP, True)
 
     # GetAction Function: Called with every frame
     def getAction(self, state):
         # TODO: write DFS Algorithm instead of returning Directions.STOP
         list = []
+
         # Legal action
+
+        # for action in state.getLegalPacmanActions():
+        #     nextState = state.generatePacmanSuccessor(action)
+        #     list.append((state.generatePacmanSuccessor(action), action))
+        #     sucAction, isBreak = self.dfs(nextState, action, list)
+        #     if (sucAction != Directions.STOP):
+        #         return action
+        #     if (isBreak):
+        #         break
+
         for action in state.getLegalPacmanActions():
-            self.dfs(state.generatePacmanSuccessor(action), action, list, [])
-        #self.dfs(state, None, list)
-        # evaluate the successor states using scoreEvaluation heuristic
+            list.append((state.generatePacmanSuccessor(action), action))
+        isBreak = False
+        while list:
+            curState, preAction = list.pop(-1)
+            if (curState.isWin()):
+                return preAction
+            if (curState.isLose()):
+                continue
+            # curState.generatePacmanSuccessor(curAction) means the nextState
+            successors = [(curState.generatePacmanSuccessor(curAction), curAction) for curAction in curState.getLegalPacmanActions()]
+            # scored = scored + [(admissibleHeuristic(state), action) for state, action in successors]
+            # scored.add(scoredTemp)
+            for nextState, curAction in successors:
+                if (nextState != None):
+                    list.append((nextState, preAction))
+                else:
+                    isBreak = True
+                    break
+            if isBreak:
+                break
+
+
         scored = [(admissibleHeuristic(state), action) for state, action in list]
         if scored == []:
             return Directions.STOP
@@ -158,6 +184,10 @@ class DFSAgent(Agent):
                 print(bestAction)
                 break
         return bestAction
+        bestActions = [pair[1] for pair in scored if pair[0] == bestScore]
+        # return random action from the list of the best actions
+        return random.choice(bestActions)
+        #return bestAction
 
 
 class AStarAgent(Agent):
