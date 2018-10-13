@@ -17,6 +17,7 @@ from game import Agent
 from heuristics import *
 import random
 import collections as cls
+import heapq as hq
 
 class RandomAgent(Agent):
     # Initialization Function: Called one time when the game starts
@@ -90,26 +91,14 @@ class BFSAgent(Agent):
         # print(scored,"/n")
         if scored == []:
             return Directions.STOP
-        bestScore = min(scored)[0]
+        bestScore = min(scored, key=lambda s: s[0])[0]
         for score, action in scored:
             if (score == bestScore):
                 bestAction = action
-                print(bestAction)
+                # print(bestAction)
                 break
-        bestActions = [pair[1] for pair in scored if pair[0] == bestScore]
-        # return random action from the list of the best actions
-        #return random.choice(bestActions)
         return bestAction
-        # bestArray = min(scored, key=lambda s: (s[0], s[2]))
-        # bestArray = max(scored, key=lambda s: (s[0], -s[2]))
-        # bestAction = bestArray[1]
-        #print(bestArray)
 
-        # bestScore = min(scored)[0]
-        # # get all actions that lead to the highest score
-        # bestActions = [pair[1] for pair in scored if pair[0] == bestScore]
-        # # return random action from the list of the best actions
-        # return random.choice(bestActions)
 
 
 class DFSAgent(Agent):
@@ -117,74 +106,50 @@ class DFSAgent(Agent):
     def registerInitialState(self, state):
         return
 
-    # def dfs(self, state, action, list):
-    #     if (state.isWin()):
-    #         return (action, True)
-    #     # get this states' all legal actions
-    #     legal = state.getLegalPacmanActions()
-    #     # get all the successor state for these actions
-    #     successors = [(state.generatePacmanSuccessor(action), action) for action in legal]
-    #     for nextState, curAction in successors:
-    #         # if (nextState != None):
-    #         if (nextState == None):
-    #             return (Directions.STOP, False)
-    #         # put all successful action and state into list
-    #         list.append((nextState, action))
-    #         self.dfs(nextState, curAction, list)
-    #         # if tempList:
-    #         #     tempList.pop()
-    #     return (Directions.STOP, True)
-
     # GetAction Function: Called with every frame
     def getAction(self, state):
         # TODO: write DFS Algorithm instead of returning Directions.STOP
-        list = []
-
-        # Legal action
-
-        # for action in state.getLegalPacmanActions():
-        #     nextState = state.generatePacmanSuccessor(action)
-        #     list.append((state.generatePacmanSuccessor(action), action))
-        #     sucAction, isBreak = self.dfs(nextState, action, list)
-        #     if (sucAction != Directions.STOP):
-        #         return action
-        #     if (isBreak):
-        #         break
-
+        q = cls.deque()
+        visited = set()
         for action in state.getLegalPacmanActions():
-            list.append((state.generatePacmanSuccessor(action), action))
+            q.append((state.generatePacmanSuccessor(action), action))
         isBreak = False
-        while list:
-            curState, preAction = list.pop(-1)
+        while q:
+            curState, preAction = q.pop()
+            if curState in visited:
+                continue
+            visited.add(curState)
             if (curState.isWin()):
                 return preAction
             if (curState.isLose()):
                 continue
+
             # curState.generatePacmanSuccessor(curAction) means the nextState
             successors = [(curState.generatePacmanSuccessor(curAction), curAction) for curAction in curState.getLegalPacmanActions()]
-            # scored = scored + [(admissibleHeuristic(state), action) for state, action in successors]
-            # scored.add(scoredTemp)
             for nextState, curAction in successors:
                 if (nextState != None):
-                    list.append((nextState, preAction))
+                    q.append((nextState, preAction))
                 else:
                     isBreak = True
                     break
             if isBreak:
                 break
 
-
-        scored = [(admissibleHeuristic(state), action) for state, action in list]
+        scored = [(admissibleHeuristic(state), action) for state, action in q]
         if scored == []:
             return Directions.STOP
+        # bestAction = min(scored, key=lambda s: s[0])[1]
+        # return bestAction
+
         bestScore = min(scored)[0]
-        for score, action in scored:
-            if (score == bestScore):
-                bestAction = action
-                print(bestAction)
-                break
-        return bestAction
+        # for score, action in scored:
+        #     if (score == bestScore):
+        #         bestAction = action
+        #         print(bestAction)
+        #         break
+        # return bestAction
         bestActions = [pair[1] for pair in scored if pair[0] == bestScore]
+
         # return random action from the list of the best actions
         return random.choice(bestActions)
         #return bestAction
@@ -198,41 +163,53 @@ class AStarAgent(Agent):
     # GetAction Function: Called with every frame
     def getAction(self, state):
         # TODO: write A* Algorithm instead of returning Directions.STOP
-        list = []
+        visited = set()
+        heap = []
+        depth = 0
         for action in state.getLegalPacmanActions():
-            list.append((state.generatePacmanSuccessor(action), action, 0))
+            hq.heappush(heap, (admissibleHeuristic(state.generatePacmanSuccessor(action)) + depth, state.generatePacmanSuccessor(action), action, depth))
         isBreak = False
-        while list:
-            curState, preAction, depth = list.pop(-1)
+        while heap:
+            score, curState, preAction, depth = hq.heappop(heap)
             if (curState.isWin()):
+                print("win")
                 return preAction
             if (curState.isLose()):
                 continue
+            if curState in visited:
+                continue
+            visited.add(curState)
+
+            # print("score", score)
+            depth += 1
             # curState.generatePacmanSuccessor(curAction) means the nextState
             successors = [(curState.generatePacmanSuccessor(curAction), curAction) for curAction in curState.getLegalPacmanActions()]
-            # scored = scored + [(admissibleHeuristic(state), action) for state, action in successors]
-            # scored.add(scoredTemp)
             for nextState, curAction in successors:
                 if (nextState != None):
-                    list.append((nextState, preAction, depth + 1))
+                    hq.heappush(heap, (admissibleHeuristic(nextState) + depth, nextState, preAction, depth))
                 else:
                     isBreak = True
                     break
             if isBreak:
                 break
 
-        scored = [(admissibleHeuristic(state) + depth, action) for state, action, depth in list]
-        if scored == []:
+        if heap == []:
             return Directions.STOP
-        bestScore = min(scored)[0]
-        for score, action in scored:
-            if (score == bestScore):
-                bestAction = action
-                print(bestAction)
-                break
-        return bestAction
-        bestActions = [pair[1] for pair in scored if pair[0] == bestScore]
-        # return random action from the list of the best actions
-        return random.choice(bestActions)
+        score, curState, preAction, depth = hq.heappop(heap)
+        return preAction
 
-        return Directions.STOP
+        # scored = [(admissibleHeuristic(state) + depth, action) for state, action, depth in list]
+        # if scored == []:
+        #     return Directions.STOP
+        # bestScore = min(scored)[0]
+        # for score, action in scored:
+        #     if (score == bestScore):
+        #         bestAction = action
+        #         print(bestAction)
+        #         break
+        # return bestAction
+        # bestActions = [pair[1] for pair in scored if pair[0] == bestScore]
+        # # return random action from the list of the best actions
+        # return random.choice(bestActions)
+        #
+        # return Directions.STOP
