@@ -64,22 +64,24 @@ class BFSAgent(Agent):
         # queue store (state, action) stores the next state after the exact one after current state action and the action
         # (the action will stay same)
         q = cls.deque()
+        depth = 0
         for action in state.getLegalPacmanActions():
-            q.append((state.generatePacmanSuccessor(action), action))
+            q.append((state.generatePacmanSuccessor(action), action, depth))
         isBreak = False
         while q:
-            curState, preAction = q.popleft()
+            curState, preAction, depth = q.popleft()
             if (curState.isWin()):
                 return preAction
             if (curState.isLose()):
                 continue
+            depth += 1
             # curState.generatePacmanSuccessor(curAction) means the nextState
             successors = [(curState.generatePacmanSuccessor(curAction), curAction) for curAction in curState.getLegalPacmanActions()]
             # scored = scored + [(admissibleHeuristic(state), action) for state, action in successors]
             # scored.add(scoredTemp)
             for nextState, curAction in successors:
                 if (nextState != None):
-                    q.append((nextState, preAction))
+                    q.append((nextState, preAction, depth))
                 else:
                     isBreak = True
                     break
@@ -87,7 +89,7 @@ class BFSAgent(Agent):
                 break
 
         #If you did not reach a terminal state, return the action leading to the node with the minimum total cost.
-        scored = [(admissibleHeuristic(state), action) for state, action in q]
+        scored = [(admissibleHeuristic(state) + depth, action) for state, action, depth in q]
         # print(scored,"/n")
         if scored == []:
             return Directions.STOP
@@ -104,44 +106,51 @@ class BFSAgent(Agent):
 class DFSAgent(Agent):
     # Initialization Function: Called one time when the game starts
     def registerInitialState(self, state):
+        # global visited
+        # visited = set()
         return
 
     # GetAction Function: Called with every frame
     def getAction(self, state):
         # TODO: write DFS Algorithm instead of returning Directions.STOP
-        q = cls.deque()
+        stack = cls.deque()
         visited = set()
+        visited.add(state)
+        depth = 0
         for action in state.getLegalPacmanActions():
-            q.append((state.generatePacmanSuccessor(action), action))
+            newState = state.generatePacmanSuccessor(action)
+            stack.append((newState, action, depth))
+            # visited.add(newState)
         isBreak = False
-        while q:
-            curState, preAction = q.pop()
-            if curState in visited:
-                continue
-            visited.add(curState)
+        while stack:
+            curState, preAction, depth = stack.pop()
             if (curState.isWin()):
                 return preAction
             if (curState.isLose()):
                 continue
-
+            if curState in visited:
+                continue
+            visited.add(curState)
+            depth += 1
             # curState.generatePacmanSuccessor(curAction) means the nextState
             successors = [(curState.generatePacmanSuccessor(curAction), curAction) for curAction in curState.getLegalPacmanActions()]
             for nextState, curAction in successors:
                 if (nextState != None):
-                    q.append((nextState, preAction))
+                    stack.append((nextState, preAction, depth))
                 else:
                     isBreak = True
                     break
             if isBreak:
                 break
 
-        scored = [(admissibleHeuristic(state), action) for state, action in q]
+        scored = [(admissibleHeuristic(state) + depth, action) for state, action, depth in stack]
         if scored == []:
             return Directions.STOP
         # bestAction = min(scored, key=lambda s: s[0])[1]
         # return bestAction
 
         bestScore = min(scored)[0]
+        # print(bestScore)
         # for score, action in scored:
         #     if (score == bestScore):
         #         bestAction = action
