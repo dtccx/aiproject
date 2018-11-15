@@ -118,15 +118,97 @@ class GeneticAgent(Agent):
         #  0                1       2
         # [actionsequence, score, rank]
 
+        # The Threshold of generationTimes. (Decide when will we end)
+        generationTimes = 10
+        # Initialization population
         population = list()
         possible = state.getAllPossibleActions()
+
         for i in range(8):
+            actionSeq = list()
+            for j in range(5):
+                actionSeq.append(random.choice(possible))
+            population.append([actionSeq, 0, 0])
 
+        # rankSelect
+        # select from the list [0, 2 numbers 1, 3 numbers 2,.... 8 numbers 7]
+        # so pick index 7 from the list's probability is 8/(8 + 7 + .. + 1)
+        choicesRank = list()
+        for i in range(8):
+            for j in range(i + 1):
+                choicesRank.append(i)
+        # print(choicesRank)
 
+        while generationTimes > 0:
+            nextPopulation = list()
+            # calculate fitness score for the  population
+            for i in range(len(population)):
+                actionSeq = population[i][0]
+                finState = state
+                tempState = state
+                for action in actionSeq:
+                    tempState = finState.generatePacmanSuccessor(action)
+                    if tempState is None:
+                        break
+                    if tempState.isLose():
+                        break
+                    finState = tempState
+                if tempState is None:
+                    continue
+                score = gameEvaluation(state, finState)
+                population[i][1] = score
 
+            # assign ranking
+            rankSum = 0
+            population.sort(key = lambda x : x[1])
+            for i in range(len(population)):
+                population[i][2] = i + 1
+                rankSum = rankSum + population[i][2]
 
+            # nextPopulation
+            while (len(nextPopulation) < 8):
+                # pick each pair according ranking :
+                index = random.choice(choicesRank) #line133 explain
+                index2 = random.choice(choicesRank)
+                while index2 == index:
+                    index2 = random.choice(choicesRank)
 
-        return Directions.STOP
+                # Apply a random test, If the test result is less (or equal) to 70%
+                # the pair will generate two children by crossing-over.
+                randomTest = random.random()
+                if randomTest <= 0.7:
+                    parent1 = population[index]
+                    parent2 = population[index2]
+                    newGene = list()
+                    for i in range(5):
+                        randomTest2 = random.random()
+                        if randomTest2 < 0.5:
+                            newGene.append(parent1[0][i])
+                        else:
+                            newGene.append(parent2[0][i])
+                    nextPopulation.append([newGene, 0, 0])
+                else:
+                    if (len(nextPopulation) == 7):
+                        continue
+                    nextPopulation.append(population[index])
+                    nextPopulation.append(population[index2])
+
+            # mutate:
+            for i in range(8):
+                randomTest = random.random()
+                if randomTest <= 0.1:
+                    indexRan = random.randint(0, 4)
+                    nextPopulation[i][0][indexRan] = random.choice(nextPopulation[i][0])
+
+            # generate K times
+            generationTimes = generationTimes - 1
+            population = nextPopulation
+
+        #
+        population.sort(key = lambda x : x[1])
+        finAction = population[len(population) - 1][0][0]
+
+        return finAction
 
 class MCTSAgent(Agent):
     # Initialization Function: Called one time when the game starts
