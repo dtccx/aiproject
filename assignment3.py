@@ -5,6 +5,8 @@ class KNN:
 		#KNN state here
 		#Feel free to add methods
 		self.k = k
+		self.train_X = []
+		self.train_Y = []
 
 	def distance(self, featureA, featureB):
 		diffs = (featureA - featureB)**2
@@ -13,12 +15,40 @@ class KNN:
 	def train(self, X, y):
 		#training logic here
 		#input is an array of features and labels
-		None
+		# store X of train and test
+		self.train_X=X
+		self.train_Y=y
 
+	#input is X_test, testdatat's X
 	def predict(self, X):
 		#Run model here
 		#Return array of predictions where there is one prediction for each set of features
-		return None
+		res=[]
+		for i in range(len(X)):
+			neighbors=self.getneighbors(X[i])
+			result=self.majorityvote(neighbors, self.train_Y)
+			res.append(result)
+		res=np.asarray(res)
+		return res
+
+	def getneighbors(self, X):
+		distance=[self.distance(traindata, X) for traindata in self.train_X]
+		distance=np.asarray(distance)
+		neighbors=np.argsort(distance)[:self.k]
+		return neighbors
+
+	def majorityvote(self, neighbors, X):
+		count=0 # count label----1
+		for index in neighbors:
+			if X[index] == 1:
+				count+=1
+		if count > self.k - count:
+			return 1
+		elif count == self.k - count:
+			return np.random.randint(2)
+		else:
+			return 0
+
 
 class ID3:
 	def __init__(self, nbins, data_range):
@@ -36,12 +66,26 @@ class ID3:
 	def train(self, X, y):
 		#training logic here
 		#input is array of features and labels
+		self.train_X=X
+		self.train_Y=y
 		categorical_data = self.preprocess(X)
+		row_num, feature_num = X.shape
+		for i in range(feature_num):
+			type = np.unique(categorical_data[:,i])
+			entropy_temp = 0
+			# for j in range(len(type)):
+
+
+		print(feature_num)
+
+
+
 
 	def predict(self, X):
 		#Run model here
 		#Return array of predictions where there is one prediction for each set of features
 		categorical_data = self.preprocess(X)
+
 		return None
 
 class Perceptron:
@@ -55,12 +99,42 @@ class Perceptron:
 	def train(self, X, y, steps):
 		#training logic here
 		#input is array of features and labels
-		None
+		# preround=0
+		for i in range(steps):
+			index=i%y.size
+			# round=i/y.size
+			# if round == preround:
+			# 	# np.random.shuffle(X)
+			# 	preround=round
+			# print(X[index].shape)
+			# print(self.w.shape)
+			predict_y=np.matmul(X[index], self.w)+self.b
+			# print(predict_y)
+			if predict_y > 0:
+				predict_y=1
+			else:
+				predict_y=0
+			if predict_y != y[index]:
+				# we change y[index] from 0 to -1
+				y_change = 1
+				if y[index] == 0:
+					y_change = -1
+				self.w=self.w+X[index]*y_change*self.lr
+				self.b=self.b+y_change*self.lr
 
 	def predict(self, X):
 		#Run model here
 		#Return array of predictions where there is one prediction for each set of features
-		return None
+		result=[]
+		for data in X:
+			res=np.matmul(data, self.w)+self.b
+			if res > 0:
+				res = 1
+			else:
+				res = 0
+			result.append(res)
+		result=np.asarray(result)
+		return result
 
 class MLP:
 	def __init__(self, w1, b1, w2, b2, lr):
@@ -92,7 +166,7 @@ class MLP:
 			pred = self.a1.forward(pred)
 			pred = self.l2.forward(pred)
 			pred = self.a2.forward(pred)
-			loss = self.MSE(pred, yi) 
+			loss = self.MSE(pred, yi)
 			#print(loss)
 
 			grad = self.MSEGrad(pred, yi)
@@ -115,24 +189,32 @@ class FCLayer:
 		self.lr = lr
 		self.w = w	#Each column represents all the weights going into an output node
 		self.b = b
+		self.x = 0
 
 	def forward(self, input):
 		#Write forward pass here
-		return None
+		# self.y = 1/(1+np.exp(-input))
+		self.x = input
+		return input.dot(self.w)+self.b
 
 	def backward(self, gradients):
 		#Write backward pass here
-		return None	
+		w_diff = self.x.T.dot(gradients)
+		x_diff = gradients.dot(self.w.T)
+		self.w -= self.lr * w_diff
+		self.b -= self.lr * gradients
+		return x_diff
 
 class Sigmoid:
 
 	def __init__(self):
-		None
+		self.y = 0
 
 	def forward(self, input):
 		#Write forward pass here
-		return None
+		self.y = 1/(1+np.exp(-input))
+		return 1/(1+np.exp(-input))
 
 	def backward(self, gradients):
 		#Write backward pass here
-		return None	
+		return gradients*(1-self.y)*self.y
