@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 class KNN:
 	def __init__(self, k):
@@ -56,6 +57,8 @@ class ID3:
 		#Feel free to add methods
 		self.bin_size = nbins
 		self.range = data_range
+		self.entropyS = 0
+		self.tree = []
 
 	def preprocess(self, data):
 		#Our dataset only has continuous data
@@ -63,30 +66,105 @@ class ID3:
 		categorical_data = np.floor(self.bin_size*norm_data).astype(int)
 		return categorical_data
 
+
+	def entropy(self, n_pos, total):
+		n_neg = total - n_pos
+		if n_pos == 0:
+			return 0
+		if n_neg == 0:
+			return 0
+		return -(n_pos / total * math.log2(n_pos/total) +
+			n_neg / total * math.log2(n_neg/total))
+
 	def train(self, X, y):
 		#training logic here
 		#input is array of features and labels
 		self.train_X=X
 		self.train_Y=y
 		categorical_data = self.preprocess(X)
-		row_num, feature_num = X.shape
-		for i in range(feature_num):
-			type = np.unique(categorical_data[:,i])
-			entropy_temp = 0
-			# for j in range(len(type)):
-
-
-		print(feature_num)
-
-
-
+		# counts = np.count_nonzero(y)
+		# print(np.count_nonzero(y))
+		# print(y.size)
+		self.entropyS = self.entropy(np.count_nonzero(y), y.size)
+		examples = np.concatenate((categorical_data, np.reshape(self.train_Y, (-1, 1))), axis=1)
+		# attributes index
+		attributes = [i for i in range(categorical_data.shape[1])]
+		self.tree = self.decsion_tree(examples, attributes , None)
 
 	def predict(self, X):
 		#Run model here
 		#Return array of predictions where there is one prediction for each set of features
 		categorical_data = self.preprocess(X)
+		res = np.zeros(len(X))
+		for i in range(len(categorical_data)):
+			tree_temp = self.tree
+			while tree_temp is not None:
+				# if tree_temp == 1 or tree_temp == 0:
+				if not isinstance(tree_temp,(list,)):
+					res[i] = tree_temp
+					break
+				# print(tree_temp[0])
+				attribute_value = categorical_data[i][tree_temp[0]] #get the first node attributes value
+				if attribute_value in tree_temp[1]:
+					tree_temp = tree_temp[1][attribute_value]
+				else:
+					counts = np.bincount(self.train_Y)
+					res[i] = np.argmax(counts)
+					break
 
-		return None
+		return res
+
+
+	def info_gain(self, attributes, egs):
+		rows, cols = egs.shape
+		entropys = np.zeros(cols)
+		for index in range(len(attributes)):
+			i = attributes[index]
+			attributes_each = egs[:,i]
+			total = len(attributes_each)
+			unique, counts = np.unique(attributes_each, return_counts=True)
+			label1 = np.zeros(len(unique))
+			# count the positive label to calculate entropy of Sv
+			for j in range(len(unique)):
+				for k in range(len(attributes_each)):
+					if egs[k][i] == unique[j] and egs[k][cols - 1] == 1:
+						label1[j] += 1
+			entropy_each = self.entropyS
+			for j in range(len(unique)):
+				entropy_each -= counts[j]/total * self.entropy(label1[j], counts[j])
+			entropys[i] = entropy_each
+		global_index = np.argmax(entropys)
+		cur_index = np.where(attributes == global_index)
+		# attributes = np.delete(attributes, at_index)
+		return cur_index, global_index, egs[:,global_index]
+
+	def decsion_tree(self, egs, attributes, p_egs):
+		# egs is record row partition result, which means attributes will not be partitioned(we record it in another way)
+		# we use attributes to record partitioned attributes
+		# print(attributes)
+		if egs.shape[0] == 0:
+			counts = np.bincount(p_egs[:,p_egs.shape[1] - 1])
+			return np.argmax(counts)
+		label_values, counts = np.unique(egs[:,egs.shape[1]-1], return_counts = True)
+		if len(label_values) == 1:
+			return label_values[0]
+		if len(attributes) == 0:
+			return label_values[np.argmax(counts)]
+
+
+		# cur_index is used to record the argmaxIG index of the parameter 'attributes', cause it is partition and have different index
+		# global_index is used to record the argmaxIG global index
+		cur_index, global_index, Avalues = self.info_gain(attributes, egs)
+		# datastrcuture [attributes_index(0~30), {attributes_value(0,1,2), children node}---- dictionary]
+		tree = [global_index, {}]
+		for v in np.unique(Avalues):
+			new_egs=[eg for eg in egs if eg[global_index] == v]
+			new_egs=np.asarray(new_egs)
+			subtree=self.decsion_tree(new_egs, np.delete(attributes, cur_index), egs)
+			tree[1][v] = subtree
+			# tree[2].append(subtree)
+
+		return tree
 
 class Perceptron:
 	def __init__(self, w, b, lr):
